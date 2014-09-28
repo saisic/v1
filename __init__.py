@@ -2,44 +2,33 @@
 #__author__ = 'Administrator'
 
 from api.public import DsmPublicApi
-from rest.restfull import Restful
+from common import log as logging
+from common.gettextutils import _
 
-
-class TestChen(object):
-    def __init__(self):
-        self.rest = Restful()
-
-    def test(self):
-        attrB = self.rest.getAttribute('b')
-        return '{\"vpc\":'+attrB+'}'
-
-    def testGET(self):
-        a = self.rest.getAttribute('a')
-        v = self.rest.query('u')
-        if not v:
-            v = ''
-        elif v is True:
-            v = '\"true\"'
-        return '{\"test\":'+a+',\"value\":'+v+'}'
-
-    def testPost(self):
-        p = self.rest.query('p')
-        v = self.rest.query('v')
-        return '{\"q\":'+p+',\"v\":'+v+'}'
-
+import service
 
 if __name__ == '__main__':
 
     wsdl = 'https://192.168.0.168:4119/webservice/Manager?WSDL'
     username = 'admin'
     password = '1234!@#$'
+    LOG = logging.getLogger('nova.all')
 
     api = DsmPublicApi(wsdl, username, password)
 
     print api.getApiVersion()
     print api.getManagerTime()
 
-    mytest = TestChen()
+    launcher = service.process_launcher()
 
-    mytest.rest.run()
-    mytest.rest.router('/wm/[a]?')(mytest.testGET())
+    for binary in ['mod1', 'mod2', 'mod3']:
+        topic = None
+        manager = None
+
+        try:
+            launcher.launch_service(service.Service.create(binary=binary,
+                                                           topic=topic,
+                                                           manager=manager))
+        except (Exception, SystemExit):
+            LOG.exception(_('Failed to load %s'), binary)
+    launcher.wait()
